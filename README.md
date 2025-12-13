@@ -1,269 +1,114 @@
-# BetterScale v2.0 Documentation
+# BetterScale
 
-A lightweight, responsive UI scaling solution for Roblox that automatically adjusts UI elements based on screen size and aspect ratio.
+Responsive UI scaling solution for Roblox. Set it up once and forget about it. Built for both scripters and UI designers.
+
+## Why?
+
+Roblox's built-in scaling is too limited. AutomaticSize breaks layouts, AutomaticCanvasSize is unreliable, and there aren't enough properties to control how things scale. BetterScale gives you full control without the headaches.
+
+```lua
+local BetterScale = require(ReplicatedStorage.BetterScale)
+local betterScale = BetterScale.new(yourUIScale)
+betterScale:Track()
+```
+
+Done. Your UI now adapts to any screen.
 
 ## Installation
 
-Place the BetterScale ModuleScript in your game and require it:
+Grab the latest release and drop it in ReplicatedStorage. Or use Wally if that's your thing.
+
+## Basic Setup
 
 ```lua
-local BetterScale = require(path.to.BetterScale)
-```
-
-## Quick Start
-
-```lua
-local BetterScale = require(ReplicatedStorage.BetterScale)
 local uiScale = script.Parent.UIScale
 
--- Configure scaling attributes
-uiScale:SetAttribute("Ratio", 1.0)
-uiScale:SetAttribute("Range", NumberRange.new(0.5, 2.0))
+-- Tell it what resolution you designed for
 uiScale:SetAttribute("Resolution", Vector2.new(1920, 1080))
-uiScale:SetAttribute("Axis", Enum.ScrollingDirection.XY)
 
--- Create and start tracking
-local BetterScale = BetterScale.new(uiScale)
-BetterScale:Track()
-
--- Clean up when done
-BetterScale:Destroy()
-```
-
-## Attributes
-
-Configure BetterScale behavior by setting attributes on your UIScale instance:
-
-### `Ratio` (number)
-**Default:** `1.0`
-
-Base scaling multiplier applied to the computed scale.
-
-```lua
-uiScale:SetAttribute("Ratio", 1.2) -- 20% larger than base
-uiScale:SetAttribute("Ratio", 0.8) -- 20% smaller than base
-```
-
-### `Range` (NumberRange)
-**Default:** `NumberRange.new(0, math.huge)`
-
-Minimum and maximum scale limits to prevent UI from becoming too small or large.
-
-```lua
+-- Optional: set some limits so it doesn't get crazy
 uiScale:SetAttribute("Range", NumberRange.new(0.5, 2.0))
+
+-- Start tracking
+local betterScale = BetterScale.new(uiScale)
+betterScale:Track()
 ```
 
-### `Resolution` (Vector2)
-**Default:** `Vector2.new(1280, 720)`
+That's literally it.
 
-Reference resolution used for scale calculations. UI will scale proportionally from this base resolution.
+## Configuration
 
-```lua
-uiScale:SetAttribute("Resolution", Vector2.new(1920, 1080))
-```
-
-### `Axis` (Enum.ScrollingDirection)
-**Default:** `Enum.ScrollingDirection.XY`
-
-Determines which axis to use for scaling calculations:
-
-- **`X`** - Scale based on horizontal resolution only
-- **`Y`** - Scale based on vertical resolution only  
-- **`XY`** - Scale uniformly based on the most constrained dimension (recommended)
-
-```lua
-uiScale:SetAttribute("Axis", Enum.ScrollingDirection.XY)
-```
-
-### `InnerRatios` (string - JSON)
-**Default:** `nil`
-
-Device-specific ratio multipliers based on `GuiService.ViewportDisplaySize`. Useful for different device categories.
-
-```lua
-uiScale:SetAttribute("InnerRatios", '{"Large": 0.8, "Small": 1.3}')
-```
-
-Available display sizes: `"Large"`, `"Small"` (check `GuiService.ViewportDisplaySize.Name` for your device)
-
-## API Reference
-
-### Constructor
-
-#### `BetterScale.new(uiScale: UIScale): BetterScale`
-
-Creates a new BetterScale instance for the given UIScale object.
-
-```lua
-local BetterScale = BetterScale.new(uiScale)
-```
-
-### Methods
-
-#### `BetterScale:Track()`
-
-Starts tracking and automatically updating the UIScale based on viewport changes.
-
-```lua
-BetterScale:Track()
-```
-
-#### `BetterScale:UnTrack()`
-
-Stops tracking viewport changes. The scale will no longer update automatically.
-
-```lua
-BetterScale:UnTrack()
-```
-
-#### `BetterScale:UpdateScale()`
-
-Manually triggers a scale update. Automatically batched to next frame to prevent redundant calculations.
-
-```lua
-BetterScale:UpdateScale()
-```
-
-#### `BetterScale:ComputeScale(): number?`
-
-Computes and returns the scale value without applying it. Returns `nil` if no GUI container is found.
-
-```lua
-local scale = BetterScale:ComputeScale()
-if scale then
-    print("Computed scale:", scale)
-end
-```
-
-#### `BetterScale:GetAttributes(displaySize: Enum.DisplaySize?): Attributes`
-
-Returns the current attributes with defaults applied. Optionally applies InnerRatios for a specific display size.
-
-```lua
-local attributes = BetterScale:GetAttributes()
-print(attributes.Ratio, attributes.Resolution)
-```
-
-#### `BetterScale:GetAbsoluteSize(): Vector2?`
-
-Returns the AbsoluteSize of the GUI container, or `nil` if not found.
-
-```lua
-local size = BetterScale:GetAbsoluteSize()
-```
-
-#### `BetterScale:Destroy()`
-
-Cleans up all connections and stops tracking. Should be called when the BetterScale instance is no longer needed.
-
-```lua
-BetterScale:Destroy()
-```
-
-## Supported Containers
-
-BetterScale automatically detects and works with:
-
-- `ScreenGui`
-- `BillboardGui`
-- `SurfaceGui`
-- `DockWidgetPluginGui`
+Everything is controlled through attributes on your UIScale:
+- **Resolution** - What screen size did you design for? (default: 1280x720)
+- **Ratio** - Want everything bigger or smaller? Multiply by this (default: 1.0)
+- **Range** - Min/max limits so UI doesn't break on weird screens (default: no limits)
+- **Axis** - Scale based on width (X), height (Y), or both (XY) (default: XY like UIAspectRatioConstraints)
+- **InnerRatios** - Different ratios for different devices. JSON string like `{"Small": 1.2}`
 
 ## Examples
 
-### Basic Responsive UI
-
+### Just make it work
 ```lua
-local BetterScale = require(ReplicatedStorage.BetterScale)
-local uiScale = script.Parent.UIScale
-
-uiScale:SetAttribute("Resolution", Vector2.new(1920, 1080))
-uiScale:SetAttribute("Axis", Enum.ScrollingDirection.XY)
-
-local BetterScale = BetterScale.new(uiScale)
-BetterScale:Track()
+local betterScale = BetterScale.new(uiScale)
+betterScale:Track()
 ```
 
-### Mobile-Optimized Scaling
-
+### I designed for 1080p
 ```lua
-local uiScale = script.Parent.UIScale
-
-uiScale:SetAttribute("Ratio", 1.0)
 uiScale:SetAttribute("Resolution", Vector2.new(1920, 1080))
-uiScale:SetAttribute("Range", NumberRange.new(0.7, 1.5))
-uiScale:SetAttribute("InnerRatios", '{"Small": 1.2}')
-
-local BetterScale = BetterScale.new(uiScale)
-BetterScale:Track()
+local betterScale = BetterScale.new(uiScale)
+betterScale:Track()
 ```
 
-### Horizontal-Only Scaling
-
+### Mobile needs to be bigger
 ```lua
-local uiScale = script.Parent.UIScale
+uiScale:SetAttribute("InnerRatios", '{"Small": 1.3}')
+local betterScale = BetterScale.new(uiScale)
+betterScale:Track()
+```
 
+### Only scale horizontally
+```lua
 uiScale:SetAttribute("Axis", Enum.ScrollingDirection.X)
-uiScale:SetAttribute("Resolution", Vector2.new(1920, 1080))
-
-local BetterScale = BetterScale.new(uiScale)
-BetterScale:Track()
+local betterScale = BetterScale.new(uiScale)
+betterScale:Track()
 ```
 
-### Manual Control
+## How it works
+
+Calculates the ratio between current screen size and your reference resolution, then applies it. Also clamps to your min/max range if you set one.
+
+Updates happen automatically when the screen resizes. Multiple updates per frame get batched together so it's not wasteful.
+
+When nothing changes, it does nothing. Zero performance cost when idle.
+
+## Cleanup
 
 ```lua
-local BetterScale = BetterScale.new(uiScale)
-
--- Compute without applying
-local scale = BetterScale:ComputeScale()
-if scale and scale > 1.5 then
-    print("Screen is very large!")
-end
-
--- Apply manually when needed
-BetterScale:UpdateScale()
+betterScale:Destroy()
 ```
 
-## How It Works
+Call this when you're done. It disconnects everything properly.
 
-### Scaling Algorithm
+## Docs
 
-BetterScale calculates scale based on the ratio between current screen size and reference resolution:
+Check the [Wiki](https://github.com/blox-libs/BetterScale/wiki) for the full API reference and advanced usage.
 
-**X-Axis:**
-```
-scale = (currentWidth / referenceWidth) * ratio
-```
+## Performance
 
-**Y-Axis:**
-```
-scale = (currentHeight / referenceHeight) * ratio
-```
+It's fast. Updates only fire when screen size changes, and multiple rapid changes get combined into one update. Event-driven, not polling.
 
-**XY (Uniform):**
-```
-scaleX = currentWidth / referenceWidth
-scaleY = currentHeight / referenceHeight
-scale = min(scaleX, scaleY) * ratio
-```
+## Supported Containers
 
-The computed scale is clamped to the specified Range, ensuring UI never becomes too small or large.
+Works with ScreenGui, BillboardGui, SurfaceGui, and DockWidgetPluginGui. (even tho you'll probably use this only on ScreenGuis/DockWidgetPluginGui)
 
-### Performance Optimizations
+## License
 
-- **Frame Batching** - Multiple updates in the same frame are batched into a single calculation on the next RenderStepped
-- **Early Returns** - Skips computation if container is missing or tracking is disabled
-- **Smart Updates** - Only applies new scale if it differs from current value
-- **Efficient Container Detection** - Uses parent traversal instead of multiple FindFirstAncestor calls
+BloxLibs License. Do whatever you want with it. I only have the right to reference experiences, games, or projects using BetterScale
 
-## Best Practices
+## Credits
 
-1. **Set Resolution to your design resolution** - If you design at 1920x1080, use that as your reference
-2. **Use XY axis for uniform scaling** - Prevents UI distortion on different aspect ratios
-3. **Set appropriate Range limits** - Prevents UI from becoming unusable on extreme screen sizes
-4. **Clean up properly** - Always call `:Destroy()` when done to prevent memory leaks
-5. **Use InnerRatios sparingly** - Only needed if you want different scaling on different device categories
+Built on ideas from QuickScale and Responsiveness. Thanks to everyone who contributed feedback.
 
 ## Projects using BetterScale
 
