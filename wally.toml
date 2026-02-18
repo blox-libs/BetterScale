@@ -1,0 +1,10 @@
+[package]
+name = "blox-libs/betterscale"
+version = "1.0.0"
+description = "Responsive UI scaling for Roblox. Set it up once and forget about it."
+license = "BloxLibs"
+authors = ["PcoiDev"]
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+
+[dependencies]
