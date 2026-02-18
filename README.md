@@ -22,18 +22,6 @@ Done.
 
 ---
 
-## Installation
-
-**Manual** — drop the module into `ReplicatedStorage`.
-
-**Wally** — add to your `wally.toml` and run `wally install`:
-```toml
-[dependencies]
-BetterScale = "blox-libs/betterscale@latest"
-```
-
----
-
 ## Setup
 
 ```lua
