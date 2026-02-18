@@ -23,7 +23,7 @@
 
 --!strict
 
-debug.setmemorycategory(script.Name)
+debug.setmemorycategory("BetterScale")
 
 local HttpService = game:GetService("HttpService")
 local GuiService = game:GetService("GuiService")
