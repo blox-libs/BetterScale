@@ -2,8 +2,8 @@
 
 > Responsive UI scaling for Roblox. Set it up once and forget about it.
 > 
-[![License](https://img.shields.io/badge/license-BloxLibs-green)](LICENSE)
-[![Wally](https://img.shields.io/badge/wally-blox--libs%2Fbetterscale-blue)](https://wally.run/package/blox-libs/betterscale)
+[![License](https://img.shields.io/badge/license-BloxLibs-blue)](LICENSE)
+[![Wally](https://img.shields.io/badge/wally-blox--libs%2Fbetterscale-red)](https://wally.run/package/blox-libs/betterscale)
 [![Pesde](https://img.shields.io/badge/pesde-blox--libs%2Fbetterscale-orange)](https://pesde.dev/packages/blox-libs/betterscale)
 
 ---
