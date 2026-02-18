@@ -1,15 +1,23 @@
-[package]
-name = "blox-libs/BetterScale"
-version = "1.0"
+name = "bloxlibs/betterscale"
+version = "1.0.0"
 description = "Responsive UI scaling for Roblox. Set it up once and forget about it."
+authors = ["PcoiDev"]
+repository = "https://github.com/blox-libs/BetterScale"
+license = "BloxLibs"
 includes = [
-    "pesde.toml",
-    "README.md",
-    "LICENSE",
-    "src/**/*.luau",
+	"src/*",
+	"README.md",
+	"pesde.toml",
+	"LICENSE"
 ]
 
 [target]
 environment = "roblox"
-lib = "src/init.luau"
 build_files = ["src"]
+lib = "src/init.luau"
+
+[indices]
+default = "https://github.com/pesde-pkg/index"
+
+[engines]
+pesde = "^0.7.0"
