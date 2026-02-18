@@ -1,0 +1,16 @@
+[package]
+name = "blox-libs/betterscale"
+version = "x.x.x"
+description = "your description here"
+
+includes = [
+    "pesde.toml",
+    "README.md",
+    "LICENSE",
+    "src/**/*.luau",
+]
+
+[target]
+environment = "roblox"
+lib = "src/init.luau"
+build_files = ["src"]
