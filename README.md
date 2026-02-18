@@ -81,9 +81,9 @@ uiScale:SetAttribute("InnerRatios", '{"Large": 0.9}')
 
 ## How it works
 
-On every resize event, BetterScale computes `currentScreenSize / referenceResolution` on the configured axis. The result is multiplied by `Ratio` and any matching `InnerRatios` entry, then clamped to `Range` if set.
+On every resize event, BetterScale computes `currentScreenSize / referenceResolution` on the configured axis. The result is multiplied by `Ratio` — with any matching `InnerRatios` entry folded into `Ratio` directly — then clamped to `Range`.
 
-Updates are batched via `RunService.Heartbeat` — multiple resize events in the same frame produce one update. When nothing changes, nothing runs.
+Updates are scheduled via `RunService.RenderStepped:Once` so multiple resize events in the same frame produce a single scale write. When nothing changes, nothing runs.
 
 ---
 
@@ -96,7 +96,10 @@ local betterScale = BetterScale.new(uiScale: UIScale)
 -- Start tracking (calculates immediately, then on every resize)
 betterScale:Track()
 
--- Clean up when done
+-- Pause tracking without destroying the instance
+betterScale:UnTrack()
+
+-- Clean up fully when done
 betterScale:Destroy()
 ```
 
@@ -116,13 +119,3 @@ betterScale:Destroy()
 | Squid Game Troll Tower | [View](https://www.roblox.com/games/75139493550474/Squid-Game-Troll-Tower) |
 
 Using BetterScale in your project? Contact [PcoiDev](https://pcoi.dev) to get listed.
-
----
-
-## Credits
-
-Built on ideas from [QuickScale](https://github.com) and [Responsiveness](https://github.com). Thanks to everyone who contributed feedback.
-
-## License
-
-BloxLibs License — do whatever you want with it. The author retains the right to reference experiences using BetterScale.
