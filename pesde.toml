@@ -1,8 +1,7 @@
 [package]
-name = "blox-libs/betterscale"
-version = "x.x.x"
-description = "your description here"
-
+name = "blox-libs/BetterScale"
+version = "1.0"
+description = "Responsive UI scaling for Roblox. Set it up once and forget about it."
 includes = [
     "pesde.toml",
     "README.md",
