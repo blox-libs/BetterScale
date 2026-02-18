@@ -1,10 +1,15 @@
 # BetterScale
 
-Responsive UI scaling solution for Roblox. Set it up once and forget about it. Built for both scripters and UI designers.
+> Responsive UI scaling for Roblox. Set it up once and forget about it.
 
-## Why?
+[![License](https://img.shields.io/badge/license-BloxLibs-blue)](LICENSE)
+[![Wally](https://img.shields.io/badge/wally-blox--libs%2Fbetterscale-orange)](https://wally.run/package/blox-libs/betterscale)
 
-Roblox's built-in scaling is too limited. AutomaticSize breaks layouts, AutomaticCanvasSize is unreliable, and there aren't enough properties to control how things scale. BetterScale gives you full control without the headaches.
+---
+
+Roblox's built-in scaling tools have real gaps. `AutomaticSize` breaks layouts. `AutomaticCanvasSize` is unreliable. There's no built-in way to say "I designed this for 1080p, scale it accordingly."
+
+BetterScale fixes this by managing a `UIScale` for you — it computes the ratio between the player's screen and your reference resolution, applies any overrides you've configured, and keeps it updated on resize.
 
 ```lua
 local BetterScale = require(ReplicatedStorage.BetterScale)
@@ -12,110 +17,112 @@ local betterScale = BetterScale.new(yourUIScale)
 betterScale:Track()
 ```
 
-Done. Your UI now adapts to any screen.
+Done.
+
+---
 
 ## Installation
 
-Grab the latest release and drop it in ReplicatedStorage. Or use Wally if that's your thing.
+**Manual** — drop the module into `ReplicatedStorage`.
 
-## Basic Setup
+**Wally** — add to your `wally.toml` and run `wally install`:
+```toml
+[dependencies]
+BetterScale = "blox-libs/betterscale@latest"
+```
+
+---
+
+## Setup
 
 ```lua
 local uiScale = script.Parent.UIScale
 
--- Tell it what resolution you designed for
+-- Resolution you designed at (default: 1280×720)
 uiScale:SetAttribute("Resolution", Vector2.new(1920, 1080))
 
--- Optional: set some limits so it doesn't get crazy
+-- Clamp so extreme screens don't break anything
 uiScale:SetAttribute("Range", NumberRange.new(0.5, 2.0))
 
--- Start tracking
 local betterScale = BetterScale.new(uiScale)
 betterScale:Track()
 ```
 
-That's literally it.
+All configuration is done through attributes on the `UIScale` instance. You can set them in the Properties panel in Studio — no code required.
 
-## Configuration
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `Resolution` | `Vector2` | `1280, 720` | Reference resolution you designed for. |
+| `Ratio` | `number` | `1.0` | Global multiplier on top of the computed scale. |
+| `Range` | `NumberRange` | — | Min/max clamp for the final scale value. |
+| `Axis` | `Enum` | `XY` | Scale by width (`X`), height (`Y`), or both (`XY`). |
+| `InnerRatios` | `string` (JSON) | — | Per-device ratio overrides. |
 
-Everything is controlled through attributes on your UIScale:
-- **Resolution** - What screen size did you design for? (default: 1280x720)
-- **Ratio** - Want everything bigger or smaller? Multiply by this (default: 1.0)
-- **Range** - Min/max limits so UI doesn't break on weird screens (default: no limits)
-- **Axis** - Scale based on width (X), height (Y), or both (XY) (default: XY like UIAspectRatioConstraints)
-- **InnerRatios** - Different ratios for different devices. JSON string like `{"Small": 1.2}`
+---
 
 ## Examples
 
-### Just make it work
-```lua
-local betterScale = BetterScale.new(uiScale)
-betterScale:Track()
-```
-
-### I designed for 1080p
-```lua
-uiScale:SetAttribute("Resolution", Vector2.new(1920, 1080))
-local betterScale = BetterScale.new(uiScale)
-betterScale:Track()
-```
-
-### Mobile needs to be bigger
+**Mobile needs bigger UI**
 ```lua
 uiScale:SetAttribute("InnerRatios", '{"Small": 1.3}')
-local betterScale = BetterScale.new(uiScale)
-betterScale:Track()
 ```
 
-### Only scale horizontally
+**Horizontal-only scaling**
 ```lua
 uiScale:SetAttribute("Axis", Enum.ScrollingDirection.X)
-local betterScale = BetterScale.new(uiScale)
-betterScale:Track()
 ```
+
+**Scale down slightly on large monitors**
+```lua
+uiScale:SetAttribute("InnerRatios", '{"Large": 0.9}')
+```
+
+---
 
 ## How it works
 
-Calculates the ratio between current screen size and your reference resolution, then applies it. Also clamps to your min/max range if you set one.
+On every resize event, BetterScale computes `currentScreenSize / referenceResolution` on the configured axis. The result is multiplied by `Ratio` and any matching `InnerRatios` entry, then clamped to `Range` if set.
 
-Updates happen automatically when the screen resizes. Multiple updates per frame get batched together so it's not wasteful.
+Updates are batched via `RunService.Heartbeat` — multiple resize events in the same frame produce one update. When nothing changes, nothing runs.
 
-When nothing changes, it does nothing. Zero performance cost when idle.
+---
 
-## Cleanup
+## API
 
 ```lua
+-- Create an instance
+local betterScale = BetterScale.new(uiScale: UIScale)
+
+-- Start tracking (calculates immediately, then on every resize)
+betterScale:Track()
+
+-- Clean up when done
 betterScale:Destroy()
 ```
 
-Call this when you're done. It disconnects everything properly.
+---
 
-## Docs
+## Supported containers
 
-Check the [Wiki](https://github.com/blox-libs/BetterScale/wiki) for the full API reference and advanced usage.
+`ScreenGui` · `BillboardGui` · `SurfaceGui` · `DockWidgetPluginGui`
 
-## Performance
-
-It's fast. Updates only fire when screen size changes, and multiple rapid changes get combined into one update. Event-driven, not polling.
-
-## Supported Containers
-
-Works with ScreenGui, BillboardGui, SurfaceGui, and DockWidgetPluginGui. (even tho you'll probably use this only on ScreenGuis/DockWidgetPluginGui)
-
-## License
-
-BloxLibs License. Do whatever you want with it. I only have the right to reference experiences, games, or projects using BetterScale
-
-## Credits
-
-Built on ideas from QuickScale and Responsiveness. Thanks to everyone who contributed feedback.
+---
 
 ## Projects using BetterScale
 
-Below is a list of experiences, games, or projects which use  **BetterScale**, **Responsiveness** or **QuickScale**.  
-If your project uses our libraries and you want it listed, feel free to contact [PcoiDev](https://pcoi.dev).
+| Project | Link |
+|---------|------|
+| Squid Game Tower | [View](https://www.roblox.com/games/103410145208388/Squid-Game-Tower) |
+| Squid Game Troll Tower | [View](https://www.roblox.com/games/75139493550474/Squid-Game-Troll-Tower) |
 
-| Name | Link |
-|-------------|----------------|
-| Squid Game Tower | [View Game](https://www.roblox.com/games/103410145208388/Squid-Game-Tower) |
-| Squid Game Troll Tower | [View Game](https://www.roblox.com/games/75139493550474/Squid-Game-Troll-Tower) |
+Using BetterScale in your project? Contact [PcoiDev](https://pcoi.dev) to get listed.
+
+---
+
+## Credits
+
+Built on ideas from [QuickScale](https://github.com) and [Responsiveness](https://github.com). Thanks to everyone who contributed feedback.
+
+## License
+
+BloxLibs License — do whatever you want with it. The author retains the right to reference experiences using BetterScale.
