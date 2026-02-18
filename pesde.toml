@@ -1,5 +1,5 @@
 name = "bloxlibs/betterscale"
-version = "1.0.0"
+version = "2.0.0"
 description = "Responsive UI scaling for Roblox. Set it up once and forget about it."
 authors = ["PcoiDev"]
 repository = "https://github.com/blox-libs/BetterScale"
