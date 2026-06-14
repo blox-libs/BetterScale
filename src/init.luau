@@ -1,24 +1,40 @@
 --[=[
-	BetterScale, v2.0 - A responsive UI scaling solution for Roblox.
+	BetterScale, v2.1.0
+	A UI scaling solution for Roblox, without the headache.
 
 	Example:
 	```lua
 	local BetterScale = require(path.to.BetterScale)
 	local uiScale = path.to.UIScale
 
+	-- Configure scaling attributes
 	uiScale:SetAttribute("Ratio", 1.2)
 	uiScale:SetAttribute("Range", NumberRange.new(0.5, 2.0))
 	uiScale:SetAttribute("Resolution", Vector2.new(1920, 1080))
-	uiScale:SetAttribute("Axis", Enum.ScrollingDirection.X)
-	uiScale:SetAttribute("InnerRatios", '{"Large": 0.8, "Small": 1.3}')
+	uiScale:SetAttribute("Axis", Enum.ScrollingDirection.X) -- X | Y | XY
+	uiScale:SetAttribute("DisplayRatios", '{"Large": 0.8, "Small": 1.3}')
 
+	-- Quick usage: create + track in one call
+	local cleanup = BetterScale.build(uiScale)
+	cleanup()
+
+	-- Or manual control
 	local betterScale = BetterScale.new(uiScale)
 	betterScale:Track()
 
+	-- Force a refresh manually
+	betterScale:Update()
+
+	-- Type checking
+	if BetterScale.is(betterScale) then
+		print("It's a BetterScale instance!")
+	end
+
+	-- Later cleanup
 	betterScale:Destroy()
 	```
 	
-	View source & license: https://github.com/blox-libs/BetterScale
+	View source & license: https://github.com/bloxlibs/BetterScale
 ]=]--
 
 --!strict
@@ -29,27 +45,20 @@ local HttpService = game:GetService("HttpService")
 local GuiService = game:GetService("GuiService")
 local RunService = game:GetService("RunService")
 
--- [ Configs ] --
-
 local GUI_CONTAINERS = {"ScreenGui", "BillboardGui", "DockWidgetPluginGui", "SurfaceGui"}
 
 local DEFAULT_RANGE = NumberRange.new(0, math.huge)
-local DEFAULT_RATIO = 1
 local DEFAULT_RESOLUTION = Vector2.new(1280, 720)
 local DEFAULT_AXIS = Enum.ScrollingDirection.XY
+local DEFAULT_RATIO = 1
 
--- [ Types ] --
-
-type DockWidgetPluginGui = ScreenGui & {
-	HostWidgetWasRestored: boolean,
-	Title: string,
-}
 
 export type Attributes = {
 	Range: NumberRange,
 	Ratio: number,
 	Resolution: Vector2,
-	Axis: Enum.ScrollingDirection
+	Axis: Enum.ScrollingDirection,
+	DisplayRatio: {[string]: number}?
 }
 
 export type GuiContainer = ScreenGui
@@ -57,57 +66,71 @@ export type GuiContainer = ScreenGui
 | BillboardGui
 | SurfaceGui
 
-export type BetterScale = typeof(setmetatable({} :: {
+export type BetterScale = setmetatable<{
 	_isTracking: boolean,
 	_uiScale: UIScale,
-	_innerRatios: {[string]: number}?,
+	_displayRatios: {[string]: number}?,
 	_guiContainer: GuiContainer?,
-	_updateScheduled: boolean,
 
 	_connections: {RBXScriptConnection},
 	_scaleConnection: RBXScriptConnection?,
-	_destroyConnection: RBXScriptConnection?,
-
-	ComputeScale: (self: BetterScale) -> number?,
+	_ancestryChangedConnection: RBXScriptConnection?,
 
 	GetAttributes: (self: BetterScale, displaySize: Enum.DisplaySize?) -> Attributes,
 	GetAbsoluteSize: (self: BetterScale) -> Vector2?,
+	GetScale: (self: BetterScale) -> number?,
 
-	UpdateContainer: (self: BetterScale) -> (),
-	UpdateInnerRatios: (self: BetterScale) -> (),
-	UpdateScale: (self: BetterScale) -> (),
-
+	Update: (self: BetterScale) -> (),
 	Track: (self: BetterScale) -> (),
 	UnTrack: (self: BetterScale) -> (),
-
 	Destroy: (self: BetterScale) -> (),
-}, {} :: {
-	__index: BetterScale
-}))
+}, {
+	__index: BetterScale,
+}>
 
--- [ Private ] --
 
 local function getGuiContainer(uiScale: UIScale): GuiContainer?
-	local parent = uiScale.Parent
-	
-	while parent do
-		if table.find(GUI_CONTAINERS, parent.ClassName) then
-			return parent :: any
+	for _, GUI_CONTAINER in GUI_CONTAINERS  do
+		local guiContainer = uiScale:FindFirstAncestorOfClass(GUI_CONTAINER) :: any
+
+		if guiContainer then
+			return guiContainer
 		end
-		parent = parent.Parent
 	end
-	
+
 	return nil
 end
 
-local function disconnectAll(connections: {RBXScriptConnection})
-	for _, connection in connections do
-		connection:Disconnect()
+local function updateDisplayRatios(self: BetterScale): ()
+	local displayRatios = self._uiScale:GetAttribute("DisplayRatios")
+	if type(displayRatios) ~= "string" then
+		self._displayRatios = nil
+		return
 	end
-	table.clear(connections)
+
+	local success, result = pcall(HttpService.JSONDecode, HttpService, displayRatios)
+	if not success or type(result) ~= "table" then
+		self._displayRatios = nil
+		return
+	end
+
+	self._displayRatios = result
 end
 
--- [ BetterScale ] --
+local function updateContainer(self: BetterScale): ()
+	self._guiContainer = getGuiContainer(self._uiScale)
+	if self._scaleConnection then
+		self._scaleConnection:Disconnect()
+		self._scaleConnection = nil
+	end
+
+	if self._guiContainer and self._isTracking then
+		self._scaleConnection = self._guiContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+			self:Update()
+		end)
+	end
+end
+
 
 local BetterScale = {}
 BetterScale.__index = BetterScale
@@ -117,19 +140,67 @@ function BetterScale.new(uiScale: UIScale): BetterScale
 
 	self._connections = {}
 	self._isTracking = false
-	self._updateScheduled = false
 
 	self._uiScale = uiScale
 	self._guiContainer = getGuiContainer(uiScale)
 
-	self._destroyConnection = uiScale.Destroying:Once(function()
-		self:Destroy()
+	self._ancestryChangedConnection = uiScale.AncestryChanged:Connect(function(_, parent)
+		if parent == nil then
+			self:Destroy()
+		end
 	end)
 
 	return self
 end
 
-function BetterScale.ComputeScale(self: BetterScale): number?
+function BetterScale.build(uiScale: UIScale): () -> ()
+	local self = BetterScale.new(uiScale)
+	self:Track()
+
+	return function()
+		self:Destroy()
+	end
+end
+
+function BetterScale.is(value: any): boolean
+	return type(value) == "table" and getmetatable(value) == BetterScale
+end
+
+function BetterScale.GetAttributes(self: BetterScale, displaySize: Enum.DisplaySize?): ()
+	local attributes = self._uiScale:GetAttributes() :: Attributes & {DisplayRatio: string?}
+
+	attributes.Range = attributes.Range or DEFAULT_RANGE
+	attributes.Ratio = attributes.Ratio or DEFAULT_RATIO
+	attributes.Resolution = attributes.Resolution or DEFAULT_RESOLUTION
+	attributes.Axis = attributes.Axis or DEFAULT_AXIS
+
+	if not displaySize then
+		return attributes
+	end
+
+	local displayRatios = self._displayRatios
+	if not displayRatios then
+		return attributes
+	end
+
+	local displayRatio = displayRatios[displaySize.Name]
+	if displayRatio then
+		attributes.Ratio *= displayRatio
+	end
+
+	return attributes
+end
+
+function BetterScale.GetAbsoluteSize(self: BetterScale): Vector2?
+	if self._guiContainer then
+		return self._guiContainer.AbsoluteSize
+	end
+
+	return nil
+end
+
+@native
+function BetterScale.GetScale(self: BetterScale): number?
 	if not self._guiContainer then
 		return nil
 	end
@@ -142,135 +213,70 @@ function BetterScale.ComputeScale(self: BetterScale): number?
 	local resolution = attributes.Resolution
 	local axis = attributes.Axis
 
-	local scale: number
+	local axisValue: number
 
 	if axis == Enum.ScrollingDirection.X then
-		scale = size.X / resolution.X
+		axisValue = size.X
+
+		local reference = 1 / resolution.X * axisValue
+		return math.clamp(reference, range.Min, range.Max) * ratio
+
 	elseif axis == Enum.ScrollingDirection.Y then
-		scale = size.Y / resolution.Y
+		axisValue = size.Y
+
+		local reference = 1 / resolution.Y * axisValue
+		return math.clamp(reference, range.Min, range.Max) * ratio
+
 	else
-		local scaleX = size.X / resolution.X
-		local scaleY = size.Y / resolution.Y
-		scale = math.min(scaleX, scaleY)
-	end
+		axisValue = math.min(size.X, size.Y)
 
-	return math.clamp(scale * ratio, range.Min, range.Max)
-end
+		local compute = 1 / resolution.X * size.X / (1 / resolution.Y * axisValue)
+		local reference = 1 / resolution.Y * math.clamp(compute, 0, 1)
 
-function BetterScale.GetAttributes(self: BetterScale, displaySize: Enum.DisplaySize?)
-	local attributes = self._uiScale:GetAttributes() :: Attributes
-
-	attributes.Range = attributes.Range or DEFAULT_RANGE
-	attributes.Ratio = attributes.Ratio or DEFAULT_RATIO
-	attributes.Resolution = attributes.Resolution or DEFAULT_RESOLUTION
-	attributes.Axis = attributes.Axis or DEFAULT_AXIS
-
-	if not displaySize then
-		return attributes
-	end
-
-	local innerRatios = self._innerRatios
-	if not innerRatios then
-		return attributes
-	end
-
-	local innerRatio = innerRatios[displaySize.Name]
-	if innerRatio then
-		attributes.Ratio *= innerRatio
-	end
-
-	return attributes
-end
-
-function BetterScale.UpdateInnerRatios(self: BetterScale): ()
-	local innerRatios = self._uiScale:GetAttribute("InnerRatios")
-	if type(innerRatios) ~= "string" then
-		self._innerRatios = nil
-		return
-	end
-
-	local success, result: {[string]: number} = pcall(HttpService.JSONDecode, HttpService, innerRatios)
-	if not success or type(result) ~= "table" then
-		self._innerRatios = nil
-		return
-	end
-
-	for key, value in result do
-		if type(value) ~= "number" then
-			self._innerRatios = nil
-			warn(`Invalid InnerRatios: {key} is not a number`)
-			return
-		end
-	end
-
-	self._innerRatios = result
-end
-
-function BetterScale.UpdateContainer(self: BetterScale): ()
-	self._guiContainer = getGuiContainer(self._uiScale)
-
-	if self._scaleConnection then
-		self._scaleConnection:Disconnect()
-		self._scaleConnection = nil
-	end
-
-	if self._guiContainer and self._isTracking then
-		self._scaleConnection = self._guiContainer:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
-			self:UpdateScale()
-		end)
+		return math.clamp(reference * axisValue, range.Min, range.Max) * ratio
 	end
 end
 
-function BetterScale.GetAbsoluteSize(self: BetterScale): Vector2?
-	if self._guiContainer then
-		return self._guiContainer.AbsoluteSize
-	end
+function BetterScale.Update(self: BetterScale): ()
+	local scale = self:GetScale()
 
-	return nil
+	if scale then
+		self._uiScale.Scale = scale
+	end
 end
 
-function BetterScale.UpdateScale(self: BetterScale): ()
-	if not self._guiContainer or not self._isTracking or self._updateScheduled then
-		return
-	end
-
-	self._updateScheduled = true
-
-	RunService.RenderStepped:Once(function()
-		self._updateScheduled = false
-
-		local compute = self:ComputeScale()
-		if compute and compute ~= self._uiScale.Scale then
-			self._uiScale.Scale = compute
-		end
-	end)
-end
-
-function BetterScale.Track(self: BetterScale)
+function BetterScale.Track(self: BetterScale): ()
 	if self._isTracking then
 		return
 	end
 
 	self._isTracking = true
-	
-	self:UpdateContainer()
-	self:UpdateInnerRatios()
-	self:UpdateScale()
+
+	updateContainer(self)
+	updateDisplayRatios(self)
+
+	table.insert(self._connections, RunService.RenderStepped:Once(function()
+		self:Update()
+	end))
 
 	table.insert(self._connections, self._uiScale.AncestryChanged:Connect(function()
-		self:UpdateContainer()
+		updateContainer(self)
 	end))
 
 	table.insert(self._connections, self._uiScale.AttributeChanged:Connect(function(attribute)
-		if attribute == "InnerRatios" then
-			self:UpdateInnerRatios()
+		if attribute == "DisplayRatios" then
+			updateDisplayRatios(self)
 		end
-		
-		self:UpdateScale()
+
+		self:Update()
+	end))
+
+	table.insert(self._connections, GuiService:GetPropertyChangedSignal("ViewportDisplaySize"):Connect(function()
+		self:Update()
 	end))
 end
 
-function BetterScale.UnTrack(self: BetterScale)
+function BetterScale.UnTrack(self: BetterScale): ()
 	if not self._isTracking then
 		return
 	end
@@ -281,16 +287,26 @@ function BetterScale.UnTrack(self: BetterScale)
 		self._scaleConnection:Disconnect()
 	end
 
-	disconnectAll(self._connections)
+	for _, connection in self._connections do
+		connection:Disconnect()
+	end
+
+	table.clear(self._connections)
 end
 
-function BetterScale.Destroy(self: BetterScale)
+function BetterScale.Destroy(self: BetterScale): ()
 	self:UnTrack()
 
-	if self._destroyConnection then
-		self._destroyConnection:Disconnect()
-		self._destroyConnection = nil
+	if self._ancestryChangedConnection then
+		self._ancestryChangedConnection:Disconnect()
+		self._ancestryChangedConnection = nil
 	end
 end
 
-return BetterScale
+
+return table.freeze({
+	new = BetterScale.new,
+	build = BetterScale.build,
+
+	is = BetterScale.is
+})
