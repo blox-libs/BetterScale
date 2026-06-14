@@ -1,7 +1,12 @@
 [package]
 name = "pcoidev/betterscale"
+<<<<<<< HEAD
 version = "2.1.0"
 description = "A UI scaling solution for Roblox, without the headache."
+=======
+version = "2.0.0"
+description = "Responsive UI scaling for Roblox. Set it up once and forget about it."
+>>>>>>> 6f37f1cf1f7955bf715f33083c40b48ebb856c78
 license = "BloxLibs"
 authors = ["PcoiDev"]
 registry = "https://github.com/UpliftGames/wally-index"

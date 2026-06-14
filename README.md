@@ -10,7 +10,19 @@
 
 Roblox's built-in scaling tools have real gaps. `AutomaticSize` breaks layouts. `AutomaticCanvasSize` is unreliable. There's no built-in way to say "I designed this for 1080p, scale it accordingly."
 
+<<<<<<< HEAD
 BetterScale fixes this by managing a `UIScale` for you: it computes the ratio between the player's screen and your reference resolution, applies any overrides you've configured, and keeps it updated on resize.
+=======
+BetterScale fixes this by managing a `UIScale` for you — it computes the ratio between the player's screen and your reference resolution, applies any overrides you've configured, and keeps it updated on resize.
+
+```lua
+local BetterScale = require(ReplicatedStorage.BetterScale)
+local betterScale = BetterScale.new(yourUIScale)
+betterScale:Track()
+```
+
+Done.
+>>>>>>> 6f37f1cf1f7955bf715f33083c40b48ebb856c78
 
 ---
 
