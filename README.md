@@ -10,7 +10,7 @@
 
 Roblox's built-in scaling tools have real gaps. `AutomaticSize` breaks layouts. `AutomaticCanvasSize` is unreliable. There's no built-in way to say "I designed this for 1080p, scale it accordingly."
 
-BetterScale fixes this by managing a `UIScale` for you — it computes the ratio between the player's screen and your reference resolution, applies any overrides you've configured, and keeps it updated on resize.
+BetterScale fixes this by managing a `UIScale` for you; it computes the ratio between the player's screen and your reference resolution, applies any overrides you've configured, and keeps it updated on resize.
 
 ```lua
 local BetterScale = require(ReplicatedStorage.BetterScale)
@@ -37,15 +37,15 @@ local betterScale = BetterScale.new(uiScale)
 betterScale:Track()
 ```
 
-All configuration is done through attributes on the `UIScale` instance. You can set them in the Properties panel in Studio — no code required.
+All configuration is done through attributes on the `UIScale` instance. You can set them in the Properties panel in Studio; no code required.
 
 | Attribute       | Type            | Default     | Description                                         |
 | --------------- | --------------- | ----------- | --------------------------------------------------- |
 | `Resolution`    | `Vector2`       | `1280, 720` | Reference resolution you designed for.              |
 | `Ratio`         | `number`        | `1.0`       | Global multiplier on top of the computed scale.     |
-| `Range`         | `NumberRange`   | —           | Min/max clamp for the final scale value.            |
+| `Range`         | `NumberRange`   | -           | Min/max clamp for the final scale value.            |
 | `Axis`          | `Enum`          | `XY`        | Scale by width (`X`), height (`Y`), or both (`XY`). |
-| `DisplayRatios` | `string` (JSON) | —           | Per-device ratio overrides.                         |
+| `DisplayRatios` | `string` (JSON) | -           | Per-device ratio overrides.                         |
 
 ---
 
